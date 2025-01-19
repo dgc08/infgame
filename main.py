@@ -1,39 +1,38 @@
 #!/usr/bin/env python3
 
 from random import randint
-from pygame.math import Vector2
+from pygame.math import Vector2,clamp
 import pgnull
 
 game = pgnull.Game()
 
-WIDTH = 400
-HEIGHT = 400
+WIDTH = 600
+HEIGHT = 600
 
 game.open_screen(WIDTH, HEIGHT)
 
-fox = pgnull.Sprite("images/fox.png", scale=(0.2,0.2), pos=(50,50))
-#fox.pos = (50,50)
-
-coin = pgnull.Sprite("images/coin.png", scale=(0.2,0.2))
+player = pgnull.Sprite("images/player.png", scale=(0.2,0.2), pos=(50,50))
+coin = pgnull.Sprite("images/coin.png", scale=0.5)
 
 score = 0
 game_over = False
 
 def time_up():
-    global game_over, fox, coin
+    global game_over, player, coin
     
     game_over = True
-    del fox
-    del coin
+    player.dequeue()
+    coin.dequeue()
 
 def place_coin():
-    # why doesn't python has do-while?
+    # why doesn't python have do-while?
     loop = True
     while loop:
         coin.x = randint(20, (WIDTH-20))
         coin.y = randint(20, (HEIGHT-20))
-        loop = fox.colliderect(coin)
+        loop = player.colliderect(coin)
 
+@game.event("on_draw")
 def draw():
     if game_over:
         game.screen.fill("pink")
@@ -43,9 +42,9 @@ def draw():
         game.screen.fill(pgnull.Colors.GREEN)
         game.screen.draw_text("Punkte: " + str(score), color="black", topleft=(10, 10))
 
-        coin.draw()
-        fox.draw()
+        
 
+@game.event("update")
 def update(context):
     global score
     global game_over
@@ -58,29 +57,30 @@ def update(context):
     elif game_over:
         pass
     else:
-        fox.scale = Vector2(0.2, 0.2)
+        player.scale = Vector2(0.2, 0.2)
         if context.keyboard.left:
-            fox.rotation += 5
-            fox.x = fox.x - 2
+            player.rotation += 5
+            player.x = player.x - 2
         elif context.keyboard.right:
-            fox.rotation -= 5
-            fox.x = fox.x + 2
+            player.rotation -= 5
+            player.x = player.x + 2
         if context.keyboard.up:
-            fox.y = fox.y - 2
-            fox.scale = Vector2(fox.scale.x, 0.4)
+            player.y = player.y - 2
+            player.scale = Vector2(player.scale.x, 0.4)
         if context.keyboard.down:
-            fox.scale = Vector2(fox.scale.x, 0.1)
-            fox.y = fox.y + 2
+            player.scale = Vector2(player.scale.x, 0.1)
+            player.y = player.y + 2
+
+        player.x = clamp(player.x, 0, WIDTH - player.width)
+        player.y = clamp(player.y, 0, HEIGHT - player.height)
 
 
-        if fox.colliderect(coin):
+        if player.colliderect(coin):
             score += 10
-            print(fox.pos)
             place_coin()
 
-    draw()
 
 place_coin()
 game.clock.schedule(time_up, 15.0)
 
-game.run_game(update)
+game.run_game()
