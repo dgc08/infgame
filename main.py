@@ -4,14 +4,48 @@ from random import randint
 from pygame.math import Vector2,clamp
 import pgnull
 
-game = pgnull.Game()
+### Lobby
+lobby = pgnull.Game()
 
 WIDTH = 600
 HEIGHT = 600
 
-game.open_screen(WIDTH, HEIGHT)
+lobby.open_screen(WIDTH, HEIGHT)
 
-player = pgnull.Sprite("images/player.png", scale=(0.2,0.2), pos=(50,50))
+@lobby.event("on_update")
+def update(context):
+    lobby.screen.fill("dim grey")
+    lobby.screen.draw_rect(main_box, "sky blue")
+    lobby.screen.draw_rect(timer_box, "sky blue")
+    lobby.screen.draw_textbox("69", timer_box, fontsize=45)
+    for box in answer_boxes:
+        lobby.screen.draw_rect(box, "orange")
+
+@lobby.event("on_mouse_down")
+def on_mouse_down(pos, button):
+    if button ==  1:
+        for i, box in enumerate(answer_boxes):
+            if box.collidepoint(pos):
+                print("clicked ans", i)
+                if i==2:
+                    lobby.quit()
+
+main_box = pgnull.Box(50, 40, 820, 240)
+timer_box = pgnull.Box(990, 40, 240, 240)
+answer_box1 = pgnull.Box(50, 358, 495, 165)
+answer_box2 = pgnull.Box(735, 358, 495, 165)
+answer_box3 = pgnull.Box(50, 538, 495, 165)
+answer_box4 = pgnull.Box(735, 538, 495, 165)
+
+answer_boxes = [answer_box1, answer_box2, answer_box3, answer_box4]
+
+lobby.run_game()
+print("running another")
+
+### REAL GAME
+game = pgnull.Game(lobby)
+
+player = pgnull.Sprite("images/player.png", scale=0.2, pos=(50,50))
 coin = pgnull.Sprite("images/coin.png", scale=0.5)
 
 score = 0
@@ -26,11 +60,15 @@ def time_up():
 
 def place_coin():
     # why doesn't python have do-while?
-    loop = True
+    loop = 10
     while loop:
-        coin.x = randint(20, (WIDTH-20))
-        coin.y = randint(20, (HEIGHT-20))
-        loop = player.colliderect(coin)
+        coin.x = randint(0, WIDTH-coin.width)
+        coin.y = randint(0, HEIGHT-coin.height)
+
+        if player.colliderect(coin):
+            loop -= 1
+        else:
+            loop = 0
 
 @game.event("on_draw")
 def draw():
@@ -51,13 +89,15 @@ def update(context):
 
     if game_over and context.keyboard.j:
         game_over = False
+        player.queue()
+        coin.queue()
         score = 0
     elif game_over and context.keyboard.n:
         game.quit()
     elif game_over:
         pass
     else:
-        player.scale = Vector2(0.2, 0.2)
+        player.scale = Vector2(0.2)
         if context.keyboard.left:
             player.rotation += 5
             player.x = player.x - 2
@@ -66,9 +106,9 @@ def update(context):
             player.x = player.x + 2
         if context.keyboard.up:
             player.y = player.y - 2
-            player.scale = Vector2(player.scale.x, 0.4)
+            player.scale = Vector2(player.scale.x, 0.8)
         if context.keyboard.down:
-            player.scale = Vector2(player.scale.x, 0.1)
+            player.scale = Vector2(player.scale.x, 0.8)
             player.y = player.y + 2
 
         player.x = clamp(player.x, 0, WIDTH - player.width)
