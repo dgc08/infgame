@@ -17,24 +17,19 @@ def predraw():
     lobby.screen.fill("dim grey")
     pass
 
-@lobby.event("on_mouse_down")
-def on_mouse_down(pos, button):
-    if button ==  1:
-        for i, box in enumerate(answer_boxes):
-            if box.collidepoint(pos):
-                if i==0:
-                    lobby.quit()
-                elif i==1:
-                    lobby.close()
-
 box_w = Vector2(180, 150)
 
 title_box= pgnull.TextBox((300,100), "Some random ass game")
 
-start_game_button = pgnull.TextBox(((WIDTH-box_w.x)/2, 160), "Start", box_w, "orange")
-exit_button = pgnull.TextBox(((WIDTH-box_w.x)/2, start_game_button.y+start_game_button.width+5), "Quit", box_w, "orange")
+start_game_button = pgnull.Button(((WIDTH-box_w.x)/2, 160), "Start", box_w, "orange")
+@start_game_button.event("on_click")
+def on_click():
+    lobby.quit()
 
-answer_boxes = [start_game_button, exit_button]
+exit_button = pgnull.Button(((WIDTH-box_w.x)/2, start_game_button.y+start_game_button.width+5), "Quit", box_w, "orange")
+@exit_button.event("on_click")
+def on_click():
+    lobby.close()
 
 lobby.run_game()
 print("running another")
@@ -57,7 +52,7 @@ def time_up():
 
 def place_coin():
     # why doesn't python have do-while?
-    loop = 10
+    loop = float("inf")
     while loop:
         coin.x = randint(0, WIDTH-coin.width)
         coin.y = randint(0, HEIGHT-coin.height)
