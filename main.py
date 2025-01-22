@@ -12,32 +12,29 @@ HEIGHT = 600
 
 lobby.open_screen(WIDTH, HEIGHT)
 
-@lobby.event("on_update")
-def update(context):
+@lobby.event("on_predraw")
+def predraw():
     lobby.screen.fill("dim grey")
-    lobby.screen.draw_rect(main_box, "sky blue")
-    lobby.screen.draw_rect(timer_box, "sky blue")
-    lobby.screen.draw_textbox("69", timer_box, fontsize=45)
-    for box in answer_boxes:
-        lobby.screen.draw_rect(box, "orange")
+    pass
 
 @lobby.event("on_mouse_down")
 def on_mouse_down(pos, button):
     if button ==  1:
         for i, box in enumerate(answer_boxes):
             if box.collidepoint(pos):
-                print("clicked ans", i)
-                if i==2:
+                if i==0:
                     lobby.quit()
+                elif i==1:
+                    lobby.close()
 
-main_box = pgnull.Box(50, 40, 820, 240)
-timer_box = pgnull.Box(990, 40, 240, 240)
-answer_box1 = pgnull.Box(50, 358, 495, 165)
-answer_box2 = pgnull.Box(735, 358, 495, 165)
-answer_box3 = pgnull.Box(50, 538, 495, 165)
-answer_box4 = pgnull.Box(735, 538, 495, 165)
+box_w = Vector2(180, 150)
 
-answer_boxes = [answer_box1, answer_box2, answer_box3, answer_box4]
+title_box= pgnull.TextBox((300,100), "Some random ass game")
+
+start_game_button = pgnull.TextBox(((WIDTH-box_w.x)/2, 160), "Start", box_w, "orange")
+exit_button = pgnull.TextBox(((WIDTH-box_w.x)/2, start_game_button.y+start_game_button.width+5), "Quit", box_w, "orange")
+
+answer_boxes = [start_game_button, exit_button]
 
 lobby.run_game()
 print("running another")
@@ -70,8 +67,8 @@ def place_coin():
         else:
             loop = 0
 
-@game.event("on_draw")
-def draw():
+@game.event("on_predraw")
+def predraw():
     if game_over:
         game.screen.fill("pink")
         game.screen.draw_text("Endstand: " + str(score), topleft=(10, 10), fontsize=60)
@@ -118,7 +115,7 @@ def update(context):
         if player.colliderect(coin):
             score += 10
             place_coin()
-
+        
 
 place_coin()
 game.clock.schedule(time_up, 15.0)
