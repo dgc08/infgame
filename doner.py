@@ -57,7 +57,7 @@ class GameOverScreen(pgnull.Scene):
 class Main(pgnull.Scene):
     score = None
 
-    player = pgnull.Sprite("images/player.png", scale=0.2, pos=(50,50))
+    player = pgnull.Sprite("images/cook.png", scale=0.2, pos=(50,50))
     coin = pgnull.Sprite("images/coin.png", scale=0.5)
 
     score_label = pgnull.TextBox(topleft=(10, 10), text="Punkte: "+str(score), color="black")

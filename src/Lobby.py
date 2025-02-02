@@ -3,6 +3,7 @@ from pgnull import utils
 
 from pygame.math import Vector2
 
+from .Game import MainGame
 
 WIDTH, HEIGHT = utils.glob_singleton["window"]
 box_w = Vector2(360, 80)
@@ -13,7 +14,9 @@ y_box_1 = (HEIGHT - (box_w.y*2)) / 2
 class StartButton(pgnull.Sprite):
     def __init__(self):
         super().__init__("images/gui/start_button.png", ((WIDTH-box_w.x)/2, y_box_1))
-
+    @staticmethod
+    def on_click():
+        pgnull.Game.get_game().load_scene(MainGame())
 
 class ExitButton(pgnull.Sprite):
     def __init__(self):
