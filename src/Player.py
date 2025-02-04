@@ -7,8 +7,8 @@ import math
 
 from .Bullet import Bullet
 
-SPEED = 2
-BULLET_SPEED = 8
+SPEED = 5
+BULLET_SPEED = 10
 
 screen_size = Vector2(pgnull.utils.glob_singleton["window"])
 
@@ -38,7 +38,7 @@ class Player(pgnull.Sprite):
         # look at mouse
         mpos = Vector2(mouse.get_pos())
 
-        angle = Vector2(0,0).angle_to(mpos-self.pos + pgnull.Game.get_game().scene.camera)
+        angle = Vector2(0,0).angle_to(mpos-self.center + pgnull.Game.get_game().scene.camera)
         self.rotation = (-1*angle)+180
 
         # shoot

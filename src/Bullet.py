@@ -11,5 +11,5 @@ class Bullet(pgnull.Sprite):
     def update(self, ctx):
         self.pos += self.direction
 
-        if self.pos.x > 2000 or self.pos.y > 2000:
+        if self.pos.x > 20000 or self.pos.y > 20000:
             self.dequeue()
