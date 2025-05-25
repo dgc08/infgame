@@ -4,8 +4,8 @@ from pgnull import utils
 
 from pygame.math import Vector2
 
-WIDTH = 640*2
-HEIGHT = 480*2
+WIDTH = 600*2.75
+HEIGHT = 300*2.75
 
 utils.glob_singleton["window"] = (WIDTH,  HEIGHT)
 
