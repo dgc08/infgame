@@ -12,7 +12,7 @@ utils.glob_singleton["window"] = (WIDTH,  HEIGHT)
 ### LOAD FIRST SCENE ###
 
 from src.Lobby import Lobby
-from src.Game import MainGame
+from src.BJ_offline import MainGame
 
 game = pgnull.Game(WIDTH, HEIGHT)
 

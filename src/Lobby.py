@@ -3,7 +3,7 @@ from pgnull import utils
 
 from pygame.math import Vector2
 
-from .Game import MainGame
+from .BJ_offline import MainGame
 
 WIDTH, HEIGHT = utils.glob_singleton["window"]
 box_w = Vector2(360, 80)

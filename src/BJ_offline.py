@@ -9,7 +9,9 @@ from .Card import Card
 WIDTH, HEIGHT = utils.glob_singleton["window"]
 
 y_spawn = 110
-clear_board = False
+
+def get_card_value():
+    pass
 
 class SpawnedCard(Card):
     spawned = 0
@@ -19,11 +21,12 @@ class SpawnedCard(Card):
         self.idx = SpawnedCard.spawned
         SpawnedCard.spawned+=1
 
-    def update(self, ctx):
+    def update_x_pos(self):
         self.x = (WIDTH - (self.width * SpawnedCard.spawned)) / 2 + self.idx * self.width
-        if clear_board:
-            SpawnedCard.spawned = 0
-            self.dequeue()
+
+class PointDisplay(pgnull.TextBox):
+    def __init__(self):
+        super().__init__("0", pos=(WIDTH-100,100), fontsize=50, font="PixelOperator8_Bold.ttf", text_color=(255,255,255))
 
 class Stack(Card):
     def __init__(self):
@@ -33,24 +36,41 @@ class Stack(Card):
         with open("src/cards_bj.txt") as f:
             self.stack = list(map(str.strip, f.readlines()))
 
+        self.drawn_cards = []
+
         self.shuffle()
 
     def shuffle(self):
         shuffle(self.stack)
         self.pointer = 0
+        self.drawn_cards = []
+        SpawnedCard.spawned = 0
         self.active = True
 
     def on_click(self):
+        print(self.draw_card())
+
+    def draw_card(self):
+        if self.pointer >= len(self.stack):
+            return None
+
         draw = self.stack[self.pointer]
 
-        print(draw)
-
-        utils.glob_singleton["game"].scene.add_game_object(SpawnedCard(draw, pos=(WIDTH/2, y_spawn)))
-
+        self.drawn_cards.append(SpawnedCard(draw, pos=(WIDTH/2, y_spawn)))
+        
         self.pointer+=1
 
-        if self.pointer == len(self.stack):
-            self.active = False
+        return draw
+
+    def draw(self):
+        if self.pointer != len(self.stack):
+            # if stack not empty, draw stack
+            super().draw()
+
+        # always draw already drawn cards
+        for i in self.drawn_cards:
+            i.update_x_pos()
+            i.draw()
             
 class MainGame(pgnull.Scene):
     def __init__(self):
@@ -64,7 +84,8 @@ class MainGame(pgnull.Scene):
         self.stack = Stack()
         self.add_game_object(self.stack)
 
+        self.add_game_object(PointDisplay())
+
     def on_update(self, ctx):
-        global clear_board
-        if clear_board:
-            clear_board = False
+        if ctx.keyboard.c:
+            self.stack.shuffle()
