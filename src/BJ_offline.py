@@ -4,11 +4,14 @@ from pgnull import utils
 
 from pygame.math import Vector2
 
-from .Card import Card
-
 WIDTH, HEIGHT = utils.glob_singleton["window"]
 
 y_spawn = 110
+
+class Card(pgnull.Sprite):
+    def __init__(self, card_ident, **kwargs):
+        super().__init__(f"images/cards/{card_ident}.png", scale=2.5, **kwargs)
+        self.card_ident = card_ident
 
 class SpawnedCardsRenderer(pgnull.GameObject):
     cards = []
