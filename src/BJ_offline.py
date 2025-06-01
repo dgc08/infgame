@@ -6,41 +6,38 @@ from pygame.math import Vector2
 
 WIDTH, HEIGHT = utils.glob_singleton["window"]
 
-y_spawn = 110
-
 class Card(pgnull.Sprite):
     def __init__(self, card_ident, **kwargs):
         super().__init__(f"images/cards/{card_ident}.png", scale=2.5, **kwargs)
         self.card_ident = card_ident
 
-class SpawnedCardsRenderer(pgnull.GameObject):
-    cards = []
-
-    @classmethod
-    def add_card(cls, card):
-        cls.cards.append(card)
-
-    @classmethod
-    def reset(cls):
-        cls.cards = []
-
-    def draw(self):
-        for i in SpawnedCardsRenderer.cards:
-            i.update_x_pos()
-            i.draw()
-
-    def update(self, ctx):
-        # nur der vollständigkeit halber
-        for i in SpawnedCardsRenderer.cards:
-            i.update(ctx)
-
 class SpawnedCard(Card):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.idx = len(SpawnedCardsRenderer.cards)
+        self.last_card_number = -1
 
-    def update_x_pos(self):
-        self.x = (WIDTH - (self.width * len(SpawnedCardsRenderer.cards))) / 2 + self.idx * self.width
+    def start(self):
+        self.idx = len(self.parent.cards)
+    def update(self, ctx):
+        if self.last_card_number != len(self.parent.cards):
+            # update position if a card got added
+            self.last_card_number = len(self.parent.cards)
+            self.x = (WIDTH - (self.width * self.last_card_number)) / 2 + self.idx * self.width
+
+class SpawnedCardsScene(pgnull.Scene):
+    def __init__(self):
+        super().__init__()
+        self.pos.y = 150
+        self.cards = []
+
+    def add_game_object(self, game_obj):
+        super().add_game_object(game_obj)
+        if isinstance(game_obj, SpawnedCard):
+            self.cards.append(game_obj.card_ident)
+
+    def reset(self):
+        self._game_objs = []
+        self.cards = []
 
 class PointDisplay(pgnull.TextBox):
     def __init__(self):
@@ -48,11 +45,20 @@ class PointDisplay(pgnull.TextBox):
         self.has_ace = False
         self.points = 0
 
+        self.last_card_number = -1
+
     def update(self, ctx):
+        if self.last_card_number == len(self.parent.spawned_cards.cards):
+            # no card got added, do nothing
+            return
+        # a card got added or removed
+        
+        self.last_card_number = len(self.parent.spawned_cards.cards)
+
         self.points = 0
         self.has_ace = False
-        for i in SpawnedCardsRenderer.cards:
-            self.points += self.get_card_value(i.card_ident)
+        for i in self.parent.spawned_cards.cards:
+            self.points += self.get_card_value(i)
 
         if self.has_ace and self.points < 12:
             self.points += 10
@@ -84,7 +90,6 @@ class Stack(Card):
     def shuffle(self):
         shuffle(self.stack)
         self.pointer = 0
-        SpawnedCardsRenderer.reset()
         self.active = True
 
     def on_click(self):
@@ -96,7 +101,7 @@ class Stack(Card):
 
         draw = self.stack[self.pointer]
 
-        SpawnedCardsRenderer.add_card(SpawnedCard(draw, pos=(WIDTH/2, y_spawn)))
+        self.parent.spawned_cards.add_game_object(SpawnedCard(draw))
         
         self.pointer+=1
 
@@ -114,15 +119,13 @@ class MainGame(pgnull.Scene):
         bg.pos=(0,0)
         self.add_game_object(bg)
 
-        self.stack = Stack()
-        self.add_game_object(self.stack)
+        self.register_object(Stack(), "stack")
 
-        self.add_game_object(SpawnedCardsRenderer())
         self.add_game_object(PointDisplay())
 
-        self.stack.draw()
-        self.stack.draw()
+        self.register_object(SpawnedCardsScene(), "spawned_cards")
 
     def on_update(self, ctx):
         if ctx.keyboard.c:
             self.stack.shuffle()
+            self.spawned_cards.reset()
