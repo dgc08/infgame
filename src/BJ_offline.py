@@ -1,5 +1,6 @@
-import pgnull
 from random import shuffle
+
+import pgnull
 from pgnull import utils
 
 from pygame.math import Vector2
@@ -36,9 +37,10 @@ class SpawnedCardsScene(pgnull.GameObject):
             self.cards.append(game_obj.card_ident)
 
     def reset(self):
-        self._game_objs = []
         self.cards = []
-
+        for i in self._game_objs:
+            i.dequeue()
+            
 class PointDisplay(pgnull.TextBox):
     def __init__(self):
         super().__init__("0", pos=(WIDTH-200,80), fontsize=50, font="PixelOperator8_Bold.ttf", text_color=(255,255,255))
@@ -101,7 +103,10 @@ class Stack(Card):
 
         draw = self.stack[self.pointer]
 
-        self.parent.spawned_cards.add_game_object(SpawnedCard(draw))
+        self.parent.spawned_cards.reg_obj(
+            SpawnedCard(draw),
+            None
+        )
         
         self.pointer+=1
 
@@ -112,18 +117,18 @@ class Stack(Card):
 
 class MainGame(pgnull.GameObject):
     def __init__(self):
-        super().__init__((18,112,58))
+        super().__init__()
+        #self.bg_color = (18,112,58)
 
-        bg = pgnull.Sprite("images/bg.png")
-        bg.set_size(WIDTH, HEIGHT)
-        bg.pos=(0,0)
-        self.add_game_object(bg)
+        self.reg_obj(pgnull.Sprite("images/bg.png"), "bg")
+        self.bg.set_size(WIDTH, HEIGHT)
+        self.bg.pos=(0,0)
 
-        self.register_object(Stack(), "stack")
+        self.reg_obj(Stack(), "stack")
 
         self.add_game_object(PointDisplay())
 
-        self.register_object(SpawnedCardsScene(), "spawned_cards")
+        self.reg_obj(SpawnedCardsScene(), "spawned_cards")
 
     def on_update(self, ctx):
         if ctx.keyboard.c:

@@ -29,8 +29,7 @@ class ExitButton(pgnull.Sprite):
 
 class Lobby(pgnull.GameObject):
     def __init__(self):
-        super().__init__((0,0,0))
-
+        super().__init__()
         bg = pgnull.Sprite("images/bg.png")
         bg.set_size(WIDTH, HEIGHT)
         bg.pos=(0,0)
