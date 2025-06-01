@@ -27,7 +27,7 @@ class ExitButton(pgnull.Sprite):
         pgnull.Game.get_game().quit()
 
 
-class Lobby(pgnull.Scene):
+class Lobby(pgnull.GameObject):
     def __init__(self):
         super().__init__((0,0,0))
 

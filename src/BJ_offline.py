@@ -16,15 +16,15 @@ class SpawnedCard(Card):
         super().__init__(*args, **kwargs)
         self.last_card_number = -1
 
-    def start(self):
+    def on_start(self):
         self.idx = len(self.parent.cards)
-    def update(self, ctx):
+    def on_update(self, ctx):
         if self.last_card_number != len(self.parent.cards):
             # update position if a card got added
             self.last_card_number = len(self.parent.cards)
             self.x = (WIDTH - (self.width * self.last_card_number)) / 2 + self.idx * self.width
 
-class SpawnedCardsScene(pgnull.Scene):
+class SpawnedCardsScene(pgnull.GameObject):
     def __init__(self):
         super().__init__()
         self.pos.y = 150
@@ -47,7 +47,7 @@ class PointDisplay(pgnull.TextBox):
 
         self.last_card_number = -1
 
-    def update(self, ctx):
+    def on_update(self, ctx):
         if self.last_card_number == len(self.parent.spawned_cards.cards):
             # no card got added, do nothing
             return
@@ -110,7 +110,7 @@ class Stack(Card):
 
         return draw
 
-class MainGame(pgnull.Scene):
+class MainGame(pgnull.GameObject):
     def __init__(self):
         super().__init__((18,112,58))
 
