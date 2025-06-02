@@ -7,8 +7,6 @@ from pygame.math import Vector2
 
 WIDTH, HEIGHT = utils.glob_singleton["window"]
 
-from .Panes import VerticalPane
-
 class Card(pgnull.Sprite):
     def __init__(self, card_ident, **kwargs):
         super().__init__(f"images/cards/{card_ident}.png", scale=2.5, **kwargs)
@@ -59,15 +57,15 @@ class Stack(Card):
         super().__init__("back")
         self.pos = ((WIDTH-self.width)/2, ((HEIGHT-self.height)/2) + 30 )
 
-        with open("src/cards_bj.txt") as f:
-            self.stack = list(map(str.strip, f.readlines()))
-        # self.stack = ["clubs_A", "clubs_Q", "clubs_05"]
+        # with open("src/cards_bj.txt") as f:
+        #     self.stack = list(map(str.strip, f.readlines()))
+        self.stack = ["clubs_02", "clubs_03", "clubs_A", "clubs_05"]
 
     def on_start(self):
         self.shuffle()
 
     def shuffle(self):
-        shuffle(self.stack)
+        #shuffle(self.stack)
         self.pointer = 0
         self.active = True
 
@@ -99,11 +97,11 @@ class Stack(Card):
 
 class PointDisplay(pgnull.TextBox):
     def __init__(self):
-        super().__init__("0", pos=(WIDTH-200, 50), fontsize=50,
+        super().__init__("0", pos=(WIDTH-220, 50), fontsize=50,
                          font="PixelOperator8_Bold.ttf", text_color=(255, 255, 255))
         self.has_ace = False
         self.points = 0
-
+        
         self.last_card_number = -1
 
     def on_update(self, ctx):
@@ -135,7 +133,7 @@ class PointDisplay(pgnull.TextBox):
         else:
             return 10
 
-class BetChooser(VerticalPane):
+class BetChooser(pgnull.VPane):
     class BetButton(pgnull.Sprite):
         def __init__(self, value):
             super().__init__(f"images/gui/bet_buttons/bet_{str(value)}.png")
@@ -146,18 +144,16 @@ class BetChooser(VerticalPane):
 
     class BetDisplay(pgnull.TextBox):
         def __init__(self):
-            super().__init__("Bet: 0", pos=(0,0), fontsize=50,
+            super().__init__("  Bet: 0", pos=(0,0), fontsize=50,
                          font="PixelOperator8_Bold.ttf", text_color=(255, 255, 255))
             self.displayed_bet = 0
-
-        def on_start(self):
-            self.center = (-50, self.center[1])
 
         def on_update(self, ctx):
             if self.displayed_bet != self.parent.bet_value:
                 self.displayed_bet = self.parent.bet_value
-                self.text = f"Bet: {self.parent.bet_value}"
-
+                self.text = f"  Bet: {self.parent.bet_value}"
+            #self.pos = ((self.width / 2) - self.width, 0)
+            
     def __init__(self):
         super().__init__(10)
         self.pos = (470, 300)
@@ -167,10 +163,10 @@ class BetChooser(VerticalPane):
     def on_start(self):
         self.add_game_object(BetChooser.BetDisplay())
 
-        # gap
-        g = pgnull.GameObject()
-        g.height = 50
-        self.add_game_object(g)
+        # # gap
+        # g = pgnull.GameObject()
+        # g.height = 50
+        # self.add_game_object(g)
 
         self.reg_obj(
             BetChooser.BetButton("10"),
