@@ -12,28 +12,7 @@ class Card(pgnull.Sprite):
         super().__init__(f"images/cards/{card_ident}.png", scale=2.5, **kwargs)
         self.card_ident = card_ident
 
-
-class SpawnedCard(Card):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.last_card_number = -1
-
-    def on_start(self):
-        self.idx = len(self.parent.cards)
-        print(self.idx)
-        self.realign()
-
-    def realign(self):
-        self.last_card_number = len(self.parent.cards)
-        self.x = (WIDTH - (self.width * self.last_card_number)) / 2 + self.idx * self.width
-
-    def on_update(self, ctx):
-        super().on_update(ctx)
-        if self.last_card_number != len(self.parent.cards):
-            # update position if a card got added
-            self.realign()
-
-
+        
 class SpawnedCardsScene(pgnull.GameObject):
     # i am to lazy to rewrite this with HorizontalPane
     def __init__(self):
@@ -42,14 +21,27 @@ class SpawnedCardsScene(pgnull.GameObject):
         self.cards = []
 
     def add_game_object(self, game_obj):
+        if not isinstance(game_obj, Card):
+            raise Exception("This should not happen; you can only add cards to the SpawnedCardsScene")
         super().add_game_object(game_obj)
-        if isinstance(game_obj, SpawnedCard):
-            self.cards.append(game_obj.card_ident)
+        self.cards.append(game_obj.card_ident)
+
+        # realign Cards
+        total_amount = len(self.cards)
+        for idx, g in enumerate(self.get_children()): # for every card, index
+            g.x = (WIDTH - (g.width * total_amount)) / 2 + idx * g.width # we don't need a gap between the cards,
+            # because the texture has a gap builtin
+
+        # update display
+        self.parent.point_display.update_display()
 
     def reset(self):
         self.cards = []
-        for i in self._game_objs:
+        for i in self.get_children():
             i.dequeue()
+
+        # update display
+        self.parent.point_display.update_display()
 
 
 class Stack(Card):
@@ -57,21 +49,17 @@ class Stack(Card):
         super().__init__("back")
         self.pos = ((WIDTH-self.width)/2, ((HEIGHT-self.height)/2) + 30 )
 
-        # with open("src/cards_bj.txt") as f:
-        #     self.stack = list(map(str.strip, f.readlines()))
-        self.stack = ["clubs_02", "clubs_03", "clubs_A", "clubs_05"]
+        with open("src/cards_bj.txt") as f:
+            self.stack = list(map(str.strip, f.readlines()))
+        #self.stack = ["clubs_02", "clubs_03", "clubs_A", "clubs_05"]
 
     def on_start(self):
         self.shuffle()
 
     def shuffle(self):
-        #shuffle(self.stack)
+        shuffle(self.stack) # -> random.shuffle the stack of cards
         self.pointer = 0
-        self.active = True
-
-        #draw two cards
-        self.draw_card()
-        self.draw_card()
+        self.active = True # in case all cards have been drawn and the stack has been deactivated
 
     def on_click(self):
         self.draw_card()
@@ -83,13 +71,14 @@ class Stack(Card):
         draw = self.stack[self.pointer]
 
         self.parent.spawned_cards.reg_obj(
-            SpawnedCard(draw),
+            Card(draw),
             None
         )
 
         self.pointer += 1
 
         if self.pointer == len(self.stack):
+            # all cards have been drawn
             self.active = False
 
         return draw
@@ -102,14 +91,7 @@ class PointDisplay(pgnull.TextBox):
         self.has_ace = False
         self.points = 0
         
-        self.last_card_number = -1
-
-    def on_update(self, ctx):
-        if self.last_card_number == len(self.parent.spawned_cards.cards):
-            # no card got added, do nothing
-            return
-        # a card got added or removed
-
+    def update_display(self):
         self.last_card_number = len(self.parent.spawned_cards.cards)
 
         self.points = 0
@@ -134,56 +116,85 @@ class PointDisplay(pgnull.TextBox):
             return 10
 
 class BetChooser(pgnull.VPane):
+    class Accept(pgnull.Sprite):
+        def __init__(self):
+            super().__init__("images/gui/bet_buttons/place.png")
+        def on_click(self):
+            # TODO
+            print("bet placed")
+    class Clear(pgnull.Sprite):
+        def __init__(self):
+            super().__init__("images/gui/bet_buttons/clear.png")
+        def on_click(self):
+            self.parent.parent.parent.bet_value = 0
+            self.parent.parent.parent.display.update_display()
+
+
     class BetButton(pgnull.Sprite):
         def __init__(self, value):
             super().__init__(f"images/gui/bet_buttons/bet_{str(value)}.png")
             self.value = int(value)
             
         def on_click(self):
-            self.parent.bet_value += self.value
+            self.parent.parent.parent.bet_value += self.value
+            self.parent.parent.parent.display.update_display()
 
     class BetDisplay(pgnull.TextBox):
         def __init__(self):
             super().__init__("  Bet: 0", pos=(0,0), fontsize=50,
                          font="PixelOperator8_Bold.ttf", text_color=(255, 255, 255))
-            self.displayed_bet = 0
 
-        def on_update(self, ctx):
-            if self.displayed_bet != self.parent.bet_value:
-                self.displayed_bet = self.parent.bet_value
-                self.text = f"  Bet: {self.parent.bet_value}"
-            #self.pos = ((self.width / 2) - self.width, 0)
+        def update_display(self):
+            self.text = f"  Bet: {self.parent.bet_value}"
             
     def __init__(self):
         super().__init__(10)
-        self.pos = (470, 300)
+        self.pos = (300, 300)
 
         self.bet_value = 0
 
     def on_start(self):
-        self.add_game_object(BetChooser.BetDisplay())
+        self.display = BetChooser.BetDisplay() # can't use reg_obj for some reason (! dequeue wont work !)
+        self.add_game_object(self.display)
 
-        # # gap
-        # g = pgnull.GameObject()
-        # g.height = 50
-        # self.add_game_object(g)
-
-        self.reg_obj(
+        buttons = pgnull.VPane(10)
+        buttons.reg_obj(
             BetChooser.BetButton("10"),
             "bet_10"
         )
-        self.reg_obj(
+        buttons.reg_obj(
             BetChooser.BetButton("50"),
             "bet_50"
         )
-        self.reg_obj(
+        buttons.reg_obj(
             BetChooser.BetButton("100"),
             "bet_100"
         )
-        self.reg_obj(
+        buttons.reg_obj(
             BetChooser.BetButton("500"),
             "bet_500"
         )
+
+        confirm_buttons = pgnull.VPane(10)
+        confirm_buttons.reg_obj(
+            BetChooser.Accept(),
+            None
+        )
+        confirm_buttons.reg_obj(
+            BetChooser.Clear(),
+            None
+        )
+
+        confirm_buttons.pos.y = ( buttons.height - confirm_buttons.height ) / 2
+        
+        hpane = pgnull.HPane(30)
+        hpane.reg_obj(buttons, "buttons")
+        hpane.reg_obj(confirm_buttons, "confirm")
+
+
+        self.reg_obj(hpane, "hpane")
+
+        self.display.pos.x = (hpane.width - self.display.width) / 2
 
 
 class MainGame(pgnull.GameObject):
@@ -197,8 +208,8 @@ class MainGame(pgnull.GameObject):
 
         self.reg_obj(SpawnedCardsScene(), "spawned_cards")
 
-        self.points = PointDisplay()
-        self.reg_obj(self.points, None)
+        self.point_display = PointDisplay()
+        self.reg_obj(self.point_display, None)
 
         self.reg_obj(Stack(), "stack")
 
