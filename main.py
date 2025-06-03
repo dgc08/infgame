@@ -12,10 +12,9 @@ utils.glob_singleton["window"] = (WIDTH,  HEIGHT)
 ### LOAD FIRST SCENE ###
 
 from src.Lobby import Lobby
+from src.BJ_offline import MainGame
 
 game = pgnull.Game(WIDTH, HEIGHT, "Blackjack with Pygame")
 
-#game.run_game(Lobby()) # Uncomment for release / showcase, leave commented for debug
-
-from src.BJ_offline import MainGame
-game.run_game(MainGame())
+while True:
+    game.run_game(Lobby()) # Uncomment for release / showcase, leave commented for debug

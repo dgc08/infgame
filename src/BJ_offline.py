@@ -47,7 +47,9 @@ class SpawnedCardsScene(pgnull.GameObject):
 class Stack(Card):
     def __init__(self):
         super().__init__("back")
-        self.pos = ((WIDTH-self.width)/2, ((HEIGHT-self.height)/2) + 30 )
+        self.pos = (696, 370)
+        print(self.pos)
+        self.can_draw = False
 
         with open("src/cards_bj.txt") as f:
             self.stack = list(map(str.strip, f.readlines()))
@@ -62,7 +64,10 @@ class Stack(Card):
         self.active = True # in case all cards have been drawn and the stack has been deactivated
 
     def on_click(self):
-        self.draw_card()
+        if self.can_draw:
+            self.draw_card() # this will always be drawn by player
+            if self.parent.point_display.points > 21:
+                self.parent.state.finish_player_turn()
 
     def draw_card(self):
         if self.pointer >= len(self.stack):
@@ -87,7 +92,7 @@ class Stack(Card):
 class PointDisplay(pgnull.TextBox):
     def __init__(self):
         super().__init__("0", pos=(WIDTH-220, 50), fontsize=50,
-                         font="PixelOperator8_Bold.ttf", text_color=(255, 255, 255))
+                         font="PixelOperatorMono8-Bold.ttf", text_color=(255, 255, 255))
         self.has_ace = False
         self.points = 0
         
@@ -120,14 +125,16 @@ class BetChooser(pgnull.VPane):
         def __init__(self):
             super().__init__("images/gui/bet_buttons/place.png")
         def on_click(self):
-            # TODO
-            print("bet placed")
+            if self.parent.parent.parent.bet_value == 0 or not self.parent.parent.parent.can_choose:
+                return
+            pgnull.Game.get_game().scene.state.check_bet()
     class Clear(pgnull.Sprite):
         def __init__(self):
             super().__init__("images/gui/bet_buttons/clear.png")
         def on_click(self):
-            self.parent.parent.parent.bet_value = 0
-            self.parent.parent.parent.display.update_display()
+            if self.parent.parent.parent.can_choose:
+                self.parent.parent.parent.bet_value = 0
+                self.parent.parent.parent.display.update_display()
 
 
     class BetButton(pgnull.Sprite):
@@ -136,13 +143,14 @@ class BetChooser(pgnull.VPane):
             self.value = int(value)
             
         def on_click(self):
-            self.parent.parent.parent.bet_value += self.value
-            self.parent.parent.parent.display.update_display()
+            if self.parent.parent.parent.can_choose:
+                self.parent.parent.parent.bet_value += self.value
+                self.parent.parent.parent.display.update_display()
 
     class BetDisplay(pgnull.TextBox):
         def __init__(self):
             super().__init__("  Bet: 0", pos=(0,0), fontsize=50,
-                         font="PixelOperator8_Bold.ttf", text_color=(255, 255, 255))
+                         font="PixelOperatorMono8-Bold.ttf", text_color=(255, 255, 255))
 
         def update_display(self):
             self.text = f"  Bet: {self.parent.bet_value}"
@@ -152,6 +160,7 @@ class BetChooser(pgnull.VPane):
         self.pos = (300, 300)
 
         self.bet_value = 0
+        self.can_choose = False
 
     def on_start(self):
         self.display = BetChooser.BetDisplay() # can't use reg_obj for some reason (! dequeue wont work !)
@@ -196,11 +205,142 @@ class BetChooser(pgnull.VPane):
 
         self.display.pos.x = (hpane.width - self.display.width) / 2
 
+class StandButton(pgnull.Sprite):
+    def __init__(self):
+        self.pressable = False
+        super().__init__("images/gui/stand_button.png", pos=(900, HEIGHT/2))
+
+    def on_click(self):
+        if self.pressable:
+            self.parent.state.finish_player_turn()
+        self.parent.check_restart()
+
+class GameState(pgnull.TextBox):
+    # this should be the class managing win / lose etc
+    # this displays balance, bet etc
+    def __init__(self):
+        super().__init__("Point Display", topleft=(0,0),
+                         fontsize=15, font="PixelOperatorMono8-Bold.ttf", text_color=(255, 255, 255), line_gap=6)
+        self.box_topleft = (1130, 275 )
+
+        self.dealer_points = 0
+
+        self.player_points = 0
+        self.player_balance = 1000
+        self.player_bet = 0
+
+        self.user_help_text = ""
+
+        self.dealer_cards = [] # two starting cards of dealer
+
+    def on_update(self, ctx):
+        self.text = f"{'Player':<8} {'Points':<8} {'Balance':<8} {'Bet':<8}\n\n" +\
+                    f"{'Dealer':<8} {self.dealer_points:<8} {'/':<8} {'/':<8}\n" +\
+                    f"{'Player':<8} {self.player_points:<8} {self.player_balance:<8} {self.player_bet:<8}\n\n\n" +\
+                     "----\n" +\
+                    self.user_help_text
+
+    def on_start(self):
+        # on new round
+        self.parent.idle = 1
+
+        self.parent.stack.shuffle()
+        self.parent.spawned_cards.reset()
+
+        self.player_points = 0
+        self.player_bet = 0
+
+        self.parent.bet_chooser.bet_value = 0
+        self.parent.bet_chooser.display.update_display()
+        self.user_help_text = "Choose a bet"
+        self.parent.bet_chooser.can_choose = True
+
+    def check_bet(self):
+        if self.parent.bet_chooser.bet_value <= self.player_balance:
+            self.parent.bet_chooser.can_choose = False
+            self.user_help_text = "Bet placed"
+            self.player_bet = self.parent.bet_chooser.bet_value
+
+            self.player_balance -= self.player_bet
+
+            pgnull.Game.get_game().clock.schedule(self.start_game, 1, 1)
+        else:
+            self.parent.bet_chooser.bet_value = 0
+            self.parent.bet_chooser.display.update_display()
+            self.user_help_text = "You don't have enough money\nfor that"
+
+    def start_game(self):
+        # draw dealer cards
+        self.parent.stack.draw_card()
+        self.parent.stack.draw_card()
+
+        self.dealer_points = self.parent.point_display.points
+
+        self.dealer_cards = self.parent.spawned_cards.get_children()
+
+        self.user_help_text = f"Dealer has drawn {self.dealer_points} on his \nstart hand\nIt's your turn"
+        self.parent.spawned_cards.reset()
+
+        # draw own cards
+        self.parent.stack.draw_card()
+        self.parent.stack.draw_card()
+
+        self.parent.stand_button.pressable = True
+        self.parent.stack.can_draw = True
+
+    def finish_player_turn(self):
+        self.parent.stand_button.pressable = False
+        self.parent.stack.can_draw = False
+        self.player_points = self.parent.point_display.points
+        self.user_help_text = f"Finished with {self.player_points}\nDealer is drawing..."
+
+        pgnull.Game.get_game().clock.schedule(self.dealer_prepare, 2, 1)
+
+    def dealer_prepare(self):
+        self.parent.spawned_cards.reset()
+
+        for i in self.dealer_cards:
+            self.parent.spawned_cards.add_game_object(i)
+
+        pgnull.Game.get_game().clock.schedule(self.dealer_draw, 2, 1)
+
+    def dealer_draw(self):
+        if self.dealer_points < 17 and self.player_points <= 21:
+            # draw a card under 17
+            self.parent.stack.draw_card()
+            self.dealer_points = self.parent.point_display.points
+            pgnull.Game.get_game().clock.schedule(self.dealer_draw, 1, 1)
+        else:
+            self.user_help_text = f"Dealer finished with {self.dealer_points}"
+            self.finish_game()
+
+
+    def finish_game(self):
+        if (self.player_points > self.dealer_points and self.player_points <= 21) or (self.player_points <= 21 and self.dealer_points > 21):
+            win = self.player_bet*2.5
+            self.player_balance += win
+            self.user_help_text += f"\n\nYou won ${win}!\nPress 'c' or the stand button \nto play again."
+        elif self.player_points == self.dealer_points and self.player_points <= 21:
+            win = self.player_bet
+            self.player_balance += win
+            self.user_help_text += f"\n\nYou have tied with the Dealer.\nPress 'c' or the stand button \nto play again."
+        else:
+            self.user_help_text += f"\n\nYou lost :((( \n\n(Don't be perturbed,\nthe gambling gods will answer you)"
+            if self.player_balance < 5: # minimum bet
+                self.user_help_text += "\n\nOh No! \nIt looks like you went all in and \nwent out of funds. Very tis\n\nPress 'c' or the stand button \nto get back to the menu."
+                self.parent.idle = -1
+                return
+            else:
+                self.user_help_text += "\nPress 'c' or the stand button\nto play again."
+        self.parent.idle = 0
+
 
 class MainGame(pgnull.GameObject):
     def __init__(self):
         super().__init__()
         # self.bg_color = (18,112,58)
+
+        self.idle = 1 # look at on_update
 
         self.reg_obj(pgnull.Sprite("images/bg.png"), "bg")
         self.bg.set_size(WIDTH, HEIGHT)
@@ -215,7 +355,21 @@ class MainGame(pgnull.GameObject):
 
         self.reg_obj(BetChooser(), "bet_chooser")
 
+        self.reg_obj(GameState(), "state")
+
+        self.reg_obj(StandButton(), "stand_button")
+
     def on_update(self, ctx):
         if ctx.keyboard.c:
-            self.spawned_cards.reset()
-            self.stack.shuffle()
+            self.check_restart()
+
+    def check_restart(self):
+        if self.idle == 1:
+            # do nothing, the game is currently on
+            pass
+        elif self.idle == 0:
+            # game finished and we can restart
+            self.state.on_start()
+        elif self.idle == -1:
+            # we ran out of funds
+            self.dequeue()
