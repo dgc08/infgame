@@ -3,7 +3,9 @@ from pgnull import utils
 
 from pygame.math import Vector2
 
-from .BJ_offline import MainGame
+from .BJ_common import MainGame
+
+from .BJ_singleplayer import SingleplayerGameState
 
 WIDTH, HEIGHT = utils.glob_singleton["window"]
 box_w = Vector2(360, 80)
@@ -16,7 +18,7 @@ class StartButton(pgnull.Sprite):
         super().__init__("images/gui/start_button.png", ((WIDTH-box_w.x)/2, y_box_1))
 
     def on_click(self):
-        pgnull.Game.get_game().load_scene(MainGame())
+        pgnull.Game.get_game().load_scene(MainGame(SingleplayerGameState())) # for now only singleplayer
 
 class ExitButton(pgnull.Sprite):
     def __init__(self):
