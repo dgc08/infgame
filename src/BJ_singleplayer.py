@@ -14,6 +14,10 @@ class SingleplayerGameState(pgnull.TextBox):
         self.player_balance = 1000
         self.player_bet = 0
 
+        self.reg_obj(pgnull.AudioPlayer("sounds/stand.wav"), "stand_sound")
+        self.reg_obj(pgnull.AudioPlayer("sounds/win.wav"), "win_sound")
+        self.reg_obj(pgnull.AudioPlayer("sounds/loose.wav"), "loose_sound")
+
         self.user_help_text = "" # text der dem spieler sagt was zu tun ist
                                  # tut mir leid ich bin kein frontend dev
 
@@ -80,6 +84,7 @@ class SingleplayerGameState(pgnull.TextBox):
     def finish_player_turn(self):
         # wird aufgerufen wenn der spieler entweder auf Stand gegangen ist oder overshooted hat
         self.parent.stand_button.pressable = False
+        self.stand_sound.play() # sound effekt für stand button
         self.parent.stack.can_draw = False
         self.player_points = self.parent.point_display.points
         self.user_help_text = f"Finished with {self.player_points}\nDealer is drawing..."
@@ -100,6 +105,7 @@ class SingleplayerGameState(pgnull.TextBox):
             # bei 16 oder weniger noch eine karte ziehen, bei 17 oder mehr stehen
             # wenn spieler schon overshooted hat, direkt stehen
             self.parent.stack.draw_card()
+            self.parent.stack.draw_sound.play() # in dieser game phase soll der dealer draw auch einen sound machen
             self.dealer_points = self.parent.point_display.points
             pgnull.Game.get_game().clock.schedule(self.dealer_draw, 1, 1)
         else:
@@ -110,6 +116,7 @@ class SingleplayerGameState(pgnull.TextBox):
     def finish_game(self):
         if (self.player_points > self.dealer_points and self.player_points <= 21) or (self.player_points <= 21 and self.dealer_points > 21):
             # spieler hat gewonnen
+            self.win_sound.play()
             win = self.player_bet*2.5 # einsatz zurück + 150% des einsatzes auszahlen
             self.player_balance += win
             self.user_help_text += f"\n\nYou won ${win-self.player_bet}!\nPress 'c' or the stand button \nto play again."
@@ -120,6 +127,7 @@ class SingleplayerGameState(pgnull.TextBox):
             self.user_help_text += f"\n\nYou have tied with the Dealer.\nPress 'c' or the stand button \nto play again."
         else:
             # spieler hat verloren
+            self.loose_sound.play()
             self.user_help_text += f"\n\nYou lost :((( \n\n(Don't be perturbed,\nthe gambling gods will answer you)"
             if self.player_balance < 5: # mindesteinsatz
                 self.user_help_text += "\n\nOh No! \nIt looks like you went all in and \nwent out of funds. Very sad\n\nPress 'c' or the stand button \nto get back to the menu."

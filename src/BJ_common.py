@@ -49,6 +49,9 @@ class Stack(Card):
         self.pos = (696, 370)
         self.can_draw = False
 
+        self.reg_obj(pgnull.AudioPlayer("sounds/draw.wav"), "draw_sound")
+        self.reg_obj(pgnull.AudioPlayer("sounds/shuffle.wav"), "shuffle_sound")
+
         with open("src/cards_bj.txt") as f:
             self.stack = list(map(str.strip, f.readlines()))
         #self.stack = ["clubs_02", "clubs_03", "clubs_A", "clubs_05"] # zum debuggen
@@ -61,6 +64,8 @@ class Stack(Card):
 
     def shuffle(self):
         shuffle(self.stack) # den stapel random.shuffle'n
+
+        self.shuffle_sound.play()
         self.pointer = 0
         self.active = True # falls alle karten gezogen wurden und der stapel deaktiviert wurde
 
@@ -68,6 +73,8 @@ class Stack(Card):
         if self.can_draw:
             self.draw_card()
             # das wird nur ausgeführt wenn der spieler zieht, weil der dealer draw_card() direkt aufruft
+
+            self.draw_sound.play()
             if self.parent.point_display.points > 21:
                 self.parent.game_controller.finish_player_turn()
 
@@ -135,11 +142,13 @@ class BetChooser(pgnull.VPane):
     class Accept(pgnull.Sprite):
         def __init__(self):
             super().__init__("images/gui/bet_buttons/place.png")
+            self.reg_obj(pgnull.AudioPlayer("sounds/place.wav"), "sound")
         def on_click(self):
             if self.parent.parent.parent.bet_value == 0 or not self.parent.parent.parent.can_choose:
                 # wenn kein einsatz gewählt wurde oder der chooser nicht aktiv ist, nichts tun
                 return
             # sonst, einsatz an game controller übergeben
+            self.sound.play()
             pgnull.Game.get_game().scene.game_controller.check_bet()
     class Clear(pgnull.Sprite):
         def __init__(self):
@@ -153,10 +162,12 @@ class BetChooser(pgnull.VPane):
     class BetButton(pgnull.Sprite):
         def __init__(self, value):
             super().__init__(f"images/gui/bet_buttons/bet_{str(value)}.png") # textur mit gegebenem wert laden
+            self.reg_obj(pgnull.AudioPlayer("sounds/money_button.wav"), "sound")
             self.value = int(value)
 
         def on_click(self):
             if self.parent.parent.parent.can_choose:
+                self.sound.play() # sound abspielen
                 self.parent.parent.parent.bet_value += self.value
                 self.parent.parent.parent.display.update_display() # einsatzanzeige aktualisieren
 
