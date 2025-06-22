@@ -1,0 +1,3 @@
+wo chatgpt code schrieb wurde markiert, der rest wurde selbst geschrieben
+
+für pgnull sonst auch die pygame docs als quelle

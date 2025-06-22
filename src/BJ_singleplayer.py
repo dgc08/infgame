@@ -1,8 +1,8 @@
 import pgnull
 
 class SingleplayerGameState(pgnull.TextBox):
-    # this should be the class managing win / lose etc
-    # this displays balance, bet etc
+    # diese klasse soll gewinn/verlust usw. verwalten
+    # zeigt balance, einsatz usw. an
     def __init__(self):
         super().__init__("Point Display", topleft=(0,0),
                          fontsize=15, font="PixelOperatorMono8-Bold.ttf", text_color=(255, 255, 255), line_gap=6)
@@ -14,12 +14,13 @@ class SingleplayerGameState(pgnull.TextBox):
         self.player_balance = 1000
         self.player_bet = 0
 
-        self.user_help_text = "" # text that is displayed to tell the user what to do
-                                 # i don't know how to make good UIs sorry
+        self.user_help_text = "" # text der dem spieler sagt was zu tun ist
+                                 # tut mir leid ich bin kein frontend dev
 
-        self.dealer_cards = [] # two starting cards of dealer
+        self.dealer_cards = [] # zwei startkarten vom dealer
 
     def on_update(self, ctx):
+        self.player_balance = int(self.player_balance)
         self.text = f"{'Player':<8} {'Points':<8} {'Balance':<8} {'Bet':<8}\n\n" +\
                     f"{'Player':<8} {self.player_points:<8} {self.player_balance:<8} {self.player_bet:<8}\n" +\
                     f"{'Dealer':<8} {self.dealer_points:<8} {' ':<8} {' ':<8}\n" +\
@@ -27,11 +28,11 @@ class SingleplayerGameState(pgnull.TextBox):
                     self.user_help_text
 
     def on_start(self):
-        # on new round
-        self.parent.idle = 1 # the game is currently running
+        # wird auch bei neuer runde aufgerufen
+        self.parent.idle = 1 # sag main scene dass das spiel gerade läuft
 
-        self.parent.stack.shuffle() # shuffle the card stack
-        self.parent.spawned_cards.reset() # remove any cards on the table
+        self.parent.stack.shuffle() # kartendeck mischen
+        self.parent.spawned_cards.reset() # alle karten vom tisch entfernen
 
         self.player_points = 0
         self.player_bet = 0
@@ -42,33 +43,33 @@ class SingleplayerGameState(pgnull.TextBox):
         self.parent.bet_chooser.can_choose = True
 
     def check_bet(self):
-        # called by the 'Place' button
+        # wird vom 'Place'-button aufgerufen
         if self.parent.bet_chooser.bet_value <= self.player_balance:
-            # the user has enough money
+            # spieler hat genug geld
             self.parent.bet_chooser.can_choose = False
             self.user_help_text = "Bet placed"
             self.player_bet = self.parent.bet_chooser.bet_value
 
             self.player_balance -= self.player_bet
 
-            pgnull.Game.get_game().clock.schedule(self.start_game, 1, 1) # start the game in 1 second
+            pgnull.Game.get_game().clock.schedule(self.start_game, 1, 1) # spiel in 1 sekunde starten
         else:
-            # couldn't place bet and advance the game, the user has no money
+            # konnte Einsatz nicht platzieren, spieler hat zu wenig geld
             self.parent.bet_chooser.bet_value = 0
             self.parent.bet_chooser.display.update_display()
             self.user_help_text = "You don't have enough money\nfor that"
 
     def start_game(self):
-        # draw dealer start hand
+        # Starthand des dealers ziehen
         self.parent.stack.draw_card()
         self.parent.stack.draw_card()
 
         self.dealer_points = self.parent.point_display.points
 
-        self.dealer_cards = self.parent.spawned_cards.get_children() # save dealer start hand for later
+        self.dealer_cards = self.parent.spawned_cards.get_children() # starthand des dealers für später speichern
         self.parent.spawned_cards.reset()
 
-        # draw own cards
+        # eigene karten ziehen
         self.user_help_text = f"Dealer has drawn {self.dealer_points} on his \nstart hand\nIt's your turn"
         self.parent.stack.draw_card()
         self.parent.stack.draw_card()
@@ -77,18 +78,18 @@ class SingleplayerGameState(pgnull.TextBox):
         self.parent.stack.can_draw = True
 
     def finish_player_turn(self):
-        # player either stands on his current score or overshot
+        # wird aufgerufen wenn der spieler entweder auf Stand gegangen ist oder overshooted hat
         self.parent.stand_button.pressable = False
         self.parent.stack.can_draw = False
         self.player_points = self.parent.point_display.points
         self.user_help_text = f"Finished with {self.player_points}\nDealer is drawing..."
 
-        pgnull.Game.get_game().clock.schedule(self.dealer_prepare, 2, 1) # wait 2 seconds until the dealer starts drawing
+        pgnull.Game.get_game().clock.schedule(self.dealer_prepare, 2, 1) # 2 sekunden warten bis dealer beginnt
 
     def dealer_prepare(self):
         self.parent.spawned_cards.reset()
 
-        # readd the dealer start hand
+        # Starthand des dealers wieder auf den tisch legen
         for i in self.dealer_cards:
             self.parent.spawned_cards.add_game_object(i)
 
@@ -96,8 +97,8 @@ class SingleplayerGameState(pgnull.TextBox):
 
     def dealer_draw(self):
         if self.dealer_points < 17 and self.player_points <= 21:
-            # draw a card on 16 or less, stand on 17 or more
-            # if the player already overshot, stand automatically
+            # bei 16 oder weniger noch eine karte ziehen, bei 17 oder mehr stehen
+            # wenn spieler schon overshooted hat, direkt stehen
             self.parent.stack.draw_card()
             self.dealer_points = self.parent.point_display.points
             pgnull.Game.get_game().clock.schedule(self.dealer_draw, 1, 1)
@@ -108,25 +109,25 @@ class SingleplayerGameState(pgnull.TextBox):
 
     def finish_game(self):
         if (self.player_points > self.dealer_points and self.player_points <= 21) or (self.player_points <= 21 and self.dealer_points > 21):
-            # player won
-            win = self.player_bet*2.5 # pay back the bet and 150% of the bet as win
+            # spieler hat gewonnen
+            win = self.player_bet*2.5 # einsatz zurück + 150% des einsatzes auszahlen
             self.player_balance += win
             self.user_help_text += f"\n\nYou won ${win-self.player_bet}!\nPress 'c' or the stand button \nto play again."
         elif self.player_points == self.dealer_points and self.player_points <= 21:
-            # tie
+            # unentschieden
             win = self.player_bet
             self.player_balance += win
             self.user_help_text += f"\n\nYou have tied with the Dealer.\nPress 'c' or the stand button \nto play again."
         else:
-            # player lost
+            # spieler hat verloren
             self.user_help_text += f"\n\nYou lost :((( \n\n(Don't be perturbed,\nthe gambling gods will answer you)"
-            if self.player_balance < 5: # minimum bet
-                self.user_help_text += "\n\nOh No! \nIt looks like you went all in and \nwent out of funds. Very tis\n\nPress 'c' or the stand button \nto get back to the menu."
-                self.parent.idle = -1 # tell the game that we can't continue playing
+            if self.player_balance < 5: # mindesteinsatz
+                self.user_help_text += "\n\nOh No! \nIt looks like you went all in and \nwent out of funds. Very sad\n\nPress 'c' or the stand button \nto get back to the menu."
+                self.parent.idle = -1 # main scene mitteilen, dass wir nicht weiterspielen können
                 return
             else:
                 self.user_help_text += "\nPress 'c' or the stand button\nto play again."
 
-        self.player_bet = 0 # remove bet from the table display
-        # tell the game that we are currently idle
+        self.player_bet = 0 # einsatzanzeige leeren
+        # spiel mitteilen, dass wir gerade im leerlauf sind
         self.parent.idle = 0
