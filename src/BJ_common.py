@@ -150,6 +150,7 @@ class BetChooser(pgnull.VPane):
             # sonst, einsatz an game controller übergeben
             self.sound.play()
             pgnull.Game.get_game().scene.game_controller.check_bet()
+
     class Clear(pgnull.Sprite):
         def __init__(self):
             super().__init__("images/gui/bet_buttons/clear.png")
@@ -187,9 +188,7 @@ class BetChooser(pgnull.VPane):
         self.can_choose = False
 
     def on_start(self):
-        self.display = BetChooser.BetDisplay() # kann reg_obj nicht mit namen nutzen wegen issues mit dem Dict (siehe TODO in GameObejct.reg_obj)
-        # ! Achtung dequeue funktioniert nicht !
-        self.reg_obj(self.display)
+        self.reg_obj(BetChooser.BetDisplay(), "display")
 
         buttons = pgnull.VPane(10)
         buttons.reg_obj(
